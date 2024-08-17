@@ -116,5 +116,9 @@ def base_parser():
     # MIR
     parser.add_argument('--mir_cands', type=int, default=50, help='# candidates to use for MIR')
 
+    # SDP
+    parser.add_argument('--sdp_mean', type=float, default=10000, help='mean of dma weights, in period')
+    parser.add_argument('--sdp_var', type=float, default=0.75, help='variance ratio (var/mean^2) of dma weights')
+    
     args = parser.parse_args()
     return args

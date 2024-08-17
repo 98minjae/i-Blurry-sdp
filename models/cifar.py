@@ -1,5 +1,5 @@
 import torch.nn as nn
-from models.layers import ConvBlock, InitialBlock, FinalBlock
+from models.layers import ConvBlock, InitialBlock
 
 
 class BasicBlock(nn.Module):
@@ -28,7 +28,8 @@ class BasicBlock(nn.Module):
             bias=False,
         )
 
-    def forward(self, x):
+    def forward(self, input_list):
+        x, features, get_features, detached = input_list
         _out = self.conv1(x)
         _out = self.conv2(_out)
         if self.downsample is not None:
@@ -36,7 +37,19 @@ class BasicBlock(nn.Module):
         else:
             shortcut = x
         _out = _out + shortcut
-        return _out
+        if get_features:
+            if detached:
+                d_out = self.conv1(x.detach())
+                d_out = self.conv2(d_out)
+                if self.downsample is not None:
+                    d_shortcut = self.downsample(x.detach())
+                else:
+                    d_shortcut = x.detach()
+                d_out = d_out + d_shortcut
+                features.append(d_out)
+            else:
+                features.append(_out)
+        return [_out, features, get_features, detached]
 
 
 class BottleneckBlock(nn.Module):
@@ -74,7 +87,8 @@ class BottleneckBlock(nn.Module):
         )
         self.downsample = downsample
 
-    def forward(self, x):
+    def forward(self, input_list):
+        x, features, get_features, detached = input_list
         _out = self.conv1(x)
         _out = self.conv2(_out)
         _out = self.conv3(_out)
@@ -83,7 +97,20 @@ class BottleneckBlock(nn.Module):
         else:
             shortcut = x
         _out = _out + shortcut
-        return _out
+        if get_features:
+            if detached:
+                d_out = self.conv1(x.detach())
+                d_out = self.conv2(d_out)
+                d_out = self.conv3(d_out)
+                if self.downsample is not None:
+                    d_shortcut = self.downsample(x.detach())
+                else:
+                    d_shortcut = x.detach()
+                d_out = d_out + d_shortcut
+                features.append(d_out)
+            else:
+                features.append(_out)
+        return [_out, features, get_features, detached]
 
 
 class ResidualBlock(nn.Module):
@@ -111,8 +138,8 @@ class ResidualBlock(nn.Module):
                 "block{}".format(i), block(opt, inChannels, outChannels)
             )
 
-    def forward(self, x):
-        return self.blocks(x)
+    def forward(self, x, features=None, get_features=False, detached=False):
+        return self.blocks([x, features, get_features, detached])[:2]
 
 
 class ResNet(nn.Module):
@@ -202,14 +229,22 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
-        out = self.initial(x)
-        out = self.group1(out)
-        out = self.group2(out)
-        out = self.group3(out)
+    def forward(self, x, get_feature=False, get_features=False, detached=False):
+        features = []
+        out_init = self.initial(x)
+        if get_features:
+            features.append(out_init)
+        out1, features = self.group1(out_init, features, get_features, detached)
+        out2, features = self.group2(out1, features, get_features, detached)
+        out3, features = self.group3(out2, features, get_features, detached)
         if self.nettype == "imagenet":
-            out = self.group4(out)
-        out = self.pool(out)
-        out = out.view(x.size(0), -1)
-        out = self.fc(out)
-        return out
+            out3, features = self.group4(out3, features, get_features, detached)
+        feature = self.pool(out3)
+        feature = feature.view(x.size(0), -1)
+        out = self.fc(feature)
+        if get_feature:
+            return out, feature
+        elif get_features:
+            return out, features
+        else:
+            return out

@@ -304,6 +304,7 @@ class MemoryDataset(Dataset):
 
     @torch.no_grad()
     def get_batch(self, batch_size, use_weight=False, transform=None):
+        batch_size = min(len(self.images), batch_size)
         if use_weight:
             weight = self.get_weight()
             indices = np.random.choice(range(len(self.images)), size=batch_size, p=weight/np.sum(weight), replace=False)
@@ -431,7 +432,7 @@ def get_statistics(dataset: str):
     """
     Returns statistics of the dataset given a string of dataset name. To add new dataset, please add required statistics here
     """
-    if dataset == 'imagenet':
+    if dataset == 'imagenet' or dataset == 'imagenet200':
         dataset = 'imagenet1000'
     assert dataset in [
         "mnist",
@@ -549,8 +550,8 @@ def rand_bbox(size, lam):
     W = size[2]
     H = size[3]
     cut_rat = np.sqrt(1.0 - lam)
-    cut_w = np.int(W * cut_rat)
-    cut_h = np.int(H * cut_rat)
+    cut_w = np.int64(W * cut_rat)
+    cut_h = np.int64(H * cut_rat)
 
     # uniform
     cx = np.random.randint(W)

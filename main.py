@@ -5,6 +5,7 @@ import pickle
 from collections import defaultdict
 
 import numpy as np
+import pandas as pd
 import torch
 from randaugment import RandAugment
 from torch import nn
@@ -51,7 +52,7 @@ def main():
     torch.manual_seed(args.rnd_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    np.random.seed(args.rnd_seed)
+    np.random.seed(4)
     random.seed(args.rnd_seed)
 
     # Transform Definition
@@ -124,24 +125,35 @@ def main():
 
         # get datalist
         cur_train_datalist = get_train_datalist(args.dataset, args.n_tasks, args.m, args.n, args.rnd_seed, cur_iter)
-
+        
         # Reduce datalist in Debug mode
         if args.debug:
             cur_train_datalist = cur_train_datalist[:2000]
             random.shuffle(test_datalist)
             test_datalist = test_datalist[:2000]
 
+        # Create a csv file
+        if cur_iter == 0:
+            initial_data = {
+                'path': [item['file_name'] for item in test_datalist],
+                'gt_cls': [item['klass'] for item in test_datalist]
+            }
+            df = pd.DataFrame(initial_data)
+            # df.index = [item['file_name'] for item in test_datalist]
+            csv_path = f'results/{args.dataset}/{args.note}/seed_{args.rnd_seed}_eval.csv'
+            df.to_csv(csv_path)
+        
         method.online_before_task(cur_iter)
         for i, data in enumerate(cur_train_datalist):
             samples_cnt += 1
             method.online_step(data, samples_cnt, args.n_worker)
             if samples_cnt % args.eval_period == 0:
-                eval_dict = method.online_evaluate(test_datalist, samples_cnt, 512, args.n_worker)
+                eval_dict = method.online_evaluate(test_datalist, samples_cnt, 512, args.n_worker, csv_path)
                 eval_results["test_acc"].append(eval_dict['avg_acc'])
                 eval_results["avg_acc"].append(eval_dict['cls_acc'])
                 eval_results["data_cnt"].append(samples_cnt)
         method.online_after_task(cur_iter)
-        eval_dict = method.online_evaluate(test_datalist, samples_cnt, 512, args.n_worker)
+        eval_dict = method.online_evaluate(test_datalist, samples_cnt, 512, args.n_worker, csv_path)
         task_acc = eval_dict['avg_acc']
 
         logger.info("[2-4] Update the information for the current task")

@@ -6,6 +6,7 @@ from methods.rainbow_memory import RM
 from methods.ewc import EWCpp
 from methods.mir import MIR
 from methods.clib import CLIB
+from methods.sdp import SDP
 
 logger = logging.getLogger()
 
@@ -69,6 +70,15 @@ def select_method(args, criterion, device, train_transform, test_transform, n_cl
         )
     elif args.mode == "clib":
         method = CLIB(
+            criterion=criterion,
+            device=device,
+            train_transform=train_transform,
+            test_transform=test_transform,
+            n_classes=n_classes,
+            **kwargs,
+        )
+    elif args.mode == "sdp":
+        method = SDP(
             criterion=criterion,
             device=device,
             train_transform=train_transform,

@@ -85,7 +85,7 @@ class ER:
         self.batch_size = kwargs["batchsize"]
 
         self.start_time = time.time()
-        num_samples = {'cifar10': 50000, 'cifar100': 50000, 'tinyimagenet': 100000, 'imagenet': 1281167}
+        num_samples = {'cifar10': 50000, 'cifar100': 50000, 'tinyimagenet': 100000, 'imagenet200': 254836, 'imagenet': 1281167}
         self.total_samples = num_samples[self.dataset]
 
     def online_step(self, sample, sample_num, n_worker):
