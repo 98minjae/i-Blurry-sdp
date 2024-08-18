@@ -1,7 +1,7 @@
 #/bin/bash
 
 # CIL CONFIG
-NOTE="sdp_10_50_lr_3e-4_trial3" # Short description of the experiment. (WARNING: logs/results with the same note will be overwritten!)
+NOTE="sdp_10_50" # Short description of the experiment. (WARNING: logs/results with the same note will be overwritten!)
 MODE="sdp"
 DATASET="cifar10" # cifar10, cifar100, tinyimagenet, imagenet
 N_TASKS=5
@@ -10,7 +10,7 @@ M=10
 GPU_TRANSFORM="--gpu_transform"
 USE_AMP="--use_amp"
 SEEDS=("1" "2" "3")
-GPU_IDS=("6" "6" "6")
+GPU_IDS=("0" "1" "2")
 
 if [ "$DATASET" == "cifar10" ]; then
     MEM_SIZE=500 ONLINE_ITER=1
